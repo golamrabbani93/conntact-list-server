@@ -92,6 +92,11 @@ async function run() {
 		const result = await cursor.toArray();
 		res.send(result);
 	});
+	app.post('/customerlist', async (req, res) => {
+		const customerdata = req.body;
+		const result = await customerCollection.insertOne(customerdata);
+		res.send(result);
+	});
 }
 run().catch((err) => console.log(err));
 app.get('/', (req, res) => {
