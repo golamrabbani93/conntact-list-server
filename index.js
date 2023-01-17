@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 app.use(cors());
 app.use(express.json());
 require('dotenv').config();
-
+const JWT_SECRET = process.env.JWT_SECRET;
 const {MongoClient, ServerApiVersion} = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.qh4qhby.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
@@ -37,6 +37,26 @@ async function run() {
 		} catch (error) {
 			res.send({status: 'error'});
 		}
+	});
+	app.post('/signin', async (req, res) => {
+		const {email, password} = req.body;
+
+		const user = await userCollection.findOne({email});
+		if (!user) {
+			return res.json({error: 'User Not found'});
+		}
+		if (await bcrypt.compare(password, user.password)) {
+			const token = jwt.sign({email: user.email}, JWT_SECRET, {
+				expiresIn: 10,
+			});
+
+			if (res.status(201)) {
+				return res.json({status: 'ok', data: token});
+			} else {
+				return res.json({error: 'error'});
+			}
+		}
+		res.json({status: 'error', error: 'InvAlid Password'});
 	});
 }
 run().catch((err) => console.log(err));
