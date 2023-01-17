@@ -47,16 +47,41 @@ async function run() {
 		}
 		if (await bcrypt.compare(password, user.password)) {
 			const token = jwt.sign({email: user.email}, JWT_SECRET, {
-				expiresIn: 10,
+				expiresIn: '1d',
 			});
 
 			if (res.status(201)) {
-				return res.json({status: 'ok', data: token});
+				return res.json({status: 200, data: token});
 			} else {
 				return res.json({error: 'error'});
 			}
 		}
 		res.json({status: 'error', error: 'InvAlid Password'});
+	});
+	app.post('/contactlist', async (req, res) => {
+		const {token} = req.body;
+
+		try {
+			const user = jwt.verify(token, JWT_SECRET, (err, res) => {
+				if (err) {
+					return 'forbidden access';
+				}
+				return res;
+			});
+
+			if (user == 'forbidden access') {
+				return res.send({status: 'error', data: 'forbidden access'});
+			}
+			const useremail = user.email;
+			userCollection
+				.findOne({email: useremail})
+				.then((data) => {
+					res.send({status: 200, data: data});
+				})
+				.catch((error) => {
+					res.send({status: 'error', data: error});
+				});
+		} catch (error) {}
 	});
 }
 run().catch((err) => console.log(err));
