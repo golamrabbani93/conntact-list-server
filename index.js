@@ -18,6 +18,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
 	const userCollection = client.db('Contact-List').collection('User');
+	const customerCollection = client.db('Contact-List').collection('Customer-List');
 
 	app.post('/signup', async (req, res) => {
 		const {name, email, password} = req.body;
@@ -82,6 +83,14 @@ async function run() {
 					res.send({status: 'error', data: error});
 				});
 		} catch (error) {}
+	});
+
+	app.get('/customerlist', async (req, res) => {
+		const userEmail = req.query.email;
+		const query = {user_email: userEmail};
+		const cursor = customerCollection.find(query);
+		const result = await cursor.toArray();
+		res.send(result);
 	});
 }
 run().catch((err) => console.log(err));
