@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
-const {MongoClient, ServerApiVersion} = require('mongodb');
+const {MongoClient, ServerApiVersion, ObjectId} = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.qh4qhby.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
 	useNewUrlParser: true,
@@ -95,6 +95,23 @@ async function run() {
 	app.post('/customerlist', async (req, res) => {
 		const customerdata = req.body;
 		const result = await customerCollection.insertOne(customerdata);
+		res.send(result);
+	});
+
+	//*update contact list
+	app.put('/customerlist/:id', async (req, res) => {
+		const id = req.params.id;
+		const data = req.body;
+		const query = {_id: ObjectId(id)};
+		const option = {upsert: true};
+		const updateData = {
+			$set: {
+				name: data.name,
+				Phone: data.Phone,
+				email: data.email,
+			},
+		};
+		const result = await customerCollection.updateOne(query, updateData, option);
 		res.send(result);
 	});
 }
