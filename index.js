@@ -16,10 +16,14 @@ const client = new MongoClient(uri, {
 	serverApi: ServerApiVersion.v1,
 });
 
+//*Make CRUD Function
 async function run() {
+	//*Total User Account List
 	const userCollection = client.db('Contact-List').collection('User');
+	//* Total Customer Account List
 	const customerCollection = client.db('Contact-List').collection('Customer-List');
 
+	// *Sign Up User And Save User To Database
 	app.post('/signup', async (req, res) => {
 		const {name, email, password} = req.body;
 		const encryptedPassword = await bcrypt.hash(password, 10);
@@ -39,6 +43,7 @@ async function run() {
 			res.send({status: 'error'});
 		}
 	});
+	// *Sign In User From Database And generate JWT Token
 	app.post('/signin', async (req, res) => {
 		const {email, password} = req.body;
 
@@ -47,10 +52,11 @@ async function run() {
 			return res.json({error: 'User Not found'});
 		}
 		if (await bcrypt.compare(password, user.password)) {
+			//* JWT Token For 1 Day
 			const token = jwt.sign({email: user.email}, JWT_SECRET, {
 				expiresIn: '1d',
 			});
-
+			//*Send Token For Sign User
 			if (res.status(201)) {
 				return res.json({status: 200, data: token});
 			} else {
@@ -59,20 +65,23 @@ async function run() {
 		}
 		res.json({status: 'error', error: 'InvAlid Password'});
 	});
+	//*verify JWT Token For sign in user
 	app.post('/contactlist', async (req, res) => {
 		const {token} = req.body;
 
 		try {
+			//*check JWT token
 			const user = jwt.verify(token, JWT_SECRET, (err, res) => {
 				if (err) {
 					return 'forbidden access';
 				}
 				return res;
 			});
-
+			//* If Token Expired Send Forbidden Access
 			if (user == 'forbidden access') {
 				return res.send({status: 'error', data: 'forbidden access'});
 			}
+			//* If Token verified then send User Data
 			const useremail = user.email;
 			userCollection
 				.findOne({email: useremail})
@@ -85,6 +94,7 @@ async function run() {
 		} catch (error) {}
 	});
 
+	//*Get All Customer Contact list
 	app.get('/customerlist', async (req, res) => {
 		const userEmail = req.query.email;
 		const query = {user_email: userEmail};
@@ -92,13 +102,14 @@ async function run() {
 		const result = await cursor.toArray();
 		res.send(result);
 	});
+	//*Add new Customer Contact list
 	app.post('/customerlist', async (req, res) => {
 		const customerdata = req.body;
 		const result = await customerCollection.insertOne(customerdata);
 		res.send(result);
 	});
 
-	//*update contact list
+	//*Update Customer contact list
 	app.put('/customerlist/:id', async (req, res) => {
 		const id = req.params.id;
 		const data = req.body;
@@ -113,6 +124,19 @@ async function run() {
 		};
 		const result = await customerCollection.updateOne(query, updateData, option);
 		res.send(result);
+	});
+
+	//*delete customer data
+	app.delete('/customerlist', async (req, res) => {
+		const ids = req.body;
+		const deleteItem = ids.map((id) => {
+			const query = {_id: ObjectId(id)};
+			const result = customerCollection.deleteOne(query);
+			return result;
+		});
+		if (deleteItem.length === ids.length) {
+			res.send({status: 200, message: 'Ok'});
+		}
 	});
 }
 run().catch((err) => console.log(err));
